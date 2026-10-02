@@ -1,0 +1,29 @@
+services:
+  # 서버용: 빌드한 결과를 nginx로 https 제공
+  web:
+    build: .
+    image: gwansang:latest
+    ports:
+      - "4173:443"
+    volumes:
+      - certs:/etc/nginx/certs
+
+  # 개발용 (선택): docker compose --profile dev up dev
+  # 소스 폴더를 그대로 연결해서 코드 수정이 바로 반영됨
+  dev:
+    profiles: ["dev"]
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - dev_node_modules:/app/node_modules
+    environment:
+      # Windows에서 폴더를 연결하면 파일 변경 감지가 안 될 수 있어 polling 사용
+      - CHOKIDAR_USEPOLLING=true
+
+volumes:
+  certs:
+  dev_node_modules:
