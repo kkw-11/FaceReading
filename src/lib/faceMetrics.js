@@ -20,6 +20,12 @@ function normalizedPoints(lm, w, h) {
 }
 
 // 한 프레임의 랜드마크 → 관상용 비율 값 (모두 크기와 무관한 비율)
+//
+// 분모 규칙: 관상서가 정성적으로 말한 값을 수치로 표현하기 위해, 문장이 무엇과 비교하는지로 분모를 정한다.
+//   1) 비교 대상이 명시된 경우 → 그 대상   (삼정은 얼굴 길이를 셋으로 나눈 것, 눈썹은 눈보다 길어야 한다)
+//   2) 얼굴 안에서 크다/넓다/길다 → 같은 축의 얼굴 치수 (가로 = cheekW, 세로 = faceH)
+//   3) 모양(가늘다, 올라갔다, 도톰하다) → 그 부위 자신의 치수
+// 2)에서 축을 맞추는 이유: 고개를 숙이거나 들면 세로만 줄어드는데, 같은 축끼리 나누면 상쇄된다.
 export function computeMetrics(lm, w, h) {
   const n = normalizedPoints(lm, w, h);
   const d = (i, j) => Math.hypot(n[i].x - n[j].x, n[i].y - n[j].y);
@@ -43,24 +49,37 @@ export function computeMetrics(lm, w, h) {
   const cornerY = avg(n[I.mouthR].y, n[I.mouthL].y);
 
   return {
+    // 얼굴형(오행) — 3) 윤곽의 모양: 얼굴 치수끼리 비교
     faceRatio: cheekW / faceH,
     jawRatio: d(I.jawR, I.jawL) / cheekW,
     foreheadRatio: d(I.foreheadR, I.foreheadL) / cheekW,
+
+    // 삼정 — 1) 얼굴 세로를 셋으로 나눈 비교
     upper: (browY - n[I.foreheadTop].y) / faceH,
     middle: (noseBaseY - browY) / faceH,
     lower: (n[I.chin].y - noseBaseY) / faceH,
-    eyeOpen: avg(d(I.eyeRTop, I.eyeRBottom) / eyeWR, d(I.eyeLTop, I.eyeLBottom) / eyeWL),
-    eyeTilt: (Math.atan(avg(tiltR, tiltL)) * 180) / Math.PI,
-    eyeGap: innerGap / eyeW,
+
+    // 눈썹 — 전택궁 간격: 2) 세로 크기 / 길이: 1) 눈보다 길어야 한다(眉長過目)
     browGap: avg(n[I.eyeRTop].y - n[I.browRPeak].y, n[I.eyeLTop].y - n[I.browLPeak].y) / faceH,
     browLen: avg(d(I.browRInner, I.browROuter), d(I.browLInner, I.browLOuter)) / eyeW,
+
+    // 눈 — 크기·기울기: 3) 모양 / 눈 사이: 2) 가로 크기
+    eyeOpen: avg(d(I.eyeRTop, I.eyeRBottom) / eyeWR, d(I.eyeLTop, I.eyeLBottom) / eyeWL),
+    eyeTilt: (Math.atan(avg(tiltR, tiltL)) * 180) / Math.PI,
+    eyeGap: innerGap / cheekW,
+
+    // 코 — 길이: 2) 세로 크기 / 콧방울: 2) 가로 크기
     noseLen: (noseBaseY - n[I.noseBridge].y) / faceH,
-    noseWidth: noseW / innerGap,
-    mouthWidth: mouthW / noseW,
+    noseWidth: noseW / cheekW,
+
+    // 입 — 폭: 2) 가로 크기 / 두께·입꼬리: 3) 모양(앙월구)
+    mouthWidth: mouthW / cheekW,
     lipThick:
       (n[I.upperLipBottom].y - n[I.upperLipTop].y + (n[I.lowerLipBottom].y - n[I.lowerLipTop].y)) /
       mouthW,
     mouthCurve: (lipCenterY - cornerY) / mouthW,
+
+    // 인중·턱(지각) — 2) 세로 크기
     philtrum: (n[I.upperLipTop].y - noseBaseY) / faceH,
     chinLen: (n[I.chin].y - n[I.lowerLipBottom].y) / faceH,
   };
