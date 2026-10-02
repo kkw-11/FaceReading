@@ -29,6 +29,8 @@ git restore node_modules
 git pull
 ```
 
+> **Docker를 쓴다면** 2~4번(Node.js 설치, 의존성 설치, 실행)은 건너뛰고 **5. Docker로 실행**만 보면 됩니다.
+
 ## 2. Node.js 설치
 
 Node.js 18 이상이 필요합니다. 이미 설치되어 있다면 3번으로 넘어가세요.
@@ -115,6 +117,63 @@ npm ci
 npm run build
 pm2 restart gwansang      # pm2를 안 쓰면 preview를 다시 실행
 ```
+
+## 5. Docker로 실행
+
+Node.js를 설치하지 않아도 되고, 누가 실행하든 같은 환경(Node 22, nginx)으로 동작합니다.
+React 앱을 빌드한 뒤 nginx가 https로 제공합니다.
+
+### Docker 설치
+
+#### Windows에 Docker 설치
+
+1. <https://www.docker.com/products/docker-desktop> 에서 Docker Desktop을 설치합니다. 설치 중 WSL2 사용을 선택합니다.
+2. 설치 후 재부팅하고, Docker Desktop을 실행해 둡니다(작업 표시줄에 고래 아이콘).
+
+#### Linux에 Docker 설치 (Ubuntu / Debian / Raspberry Pi OS)
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER     # sudo 없이 docker 명령 사용
+```
+
+설정을 적용하려면 로그아웃했다가 다시 로그인합니다(또는 재부팅).
+
+```bash
+docker --version && docker compose version   # 설치 확인
+```
+
+### 서버 실행
+
+```bash
+cd FaceReading
+docker compose up -d --build
+```
+
+- 접속 주소: `https://<서버 IP>:4173` (같은 기기에서는 `https://localhost:4173`)
+- 처음 접속하면 인증서 경고가 나옵니다. **고급 → (안전하지 않음)(으)로 이동**을 누르면 됩니다.
+- 인증서는 처음 실행할 때 자동으로 만들어지고 `certs` 볼륨에 저장됩니다. 컨테이너를 다시 만들어도 같은 인증서를 씁니다.
+- 컨테이너는 `-d` 옵션으로 백그라운드에서 실행되므로 터미널을 닫아도 계속 동작합니다. 재부팅하거나 Docker를 다시 켠 뒤에는 `docker compose up -d`로 다시 실행합니다.
+- 라즈베리파이에서는 첫 빌드에 몇 분 걸릴 수 있습니다.
+
+| 하고 싶은 것 | 명령 |
+| --- | --- |
+| 상태 확인 | `docker compose ps` |
+| 로그 보기 | `docker compose logs -f web` |
+| 중지 | `docker compose down` |
+| 코드 업데이트 후 반영 | `git pull && docker compose up -d --build` |
+
+### 개발 환경 (선택)
+
+코드를 수정하면서 바로 확인하고 싶을 때 씁니다. 소스 폴더가 컨테이너에 연결됩니다.
+
+```bash
+docker compose --profile dev up dev
+```
+
+- 접속 주소: `https://localhost:5173`
+- 종료는 `Ctrl + C`
+- Windows에서는 파일 변경 반영이 1~2초 늦을 수 있습니다. 개발은 Node.js를 직접 설치해서 `npm run dev`로 하는 편이 더 빠릅니다.
 
 ## 구조
 
